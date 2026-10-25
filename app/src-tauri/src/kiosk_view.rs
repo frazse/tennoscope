@@ -246,6 +246,7 @@ pub fn mask_published_chips(frame: &mut image::DynamicImage, view: &KioskView, m
         // the strip's text reads back into the scroll locator and the quantity OCR.
         let chip_w_1080 = cell
             .mastery
+            .as_ref()
             .map_or(crate::kiosk_geometry::PRICE_CHIP_W_1080, |mastery| {
                 crate::kiosk_geometry::strip_mask_width_1080(mastery.held)
             });

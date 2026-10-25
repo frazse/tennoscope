@@ -116,20 +116,31 @@ impl<'a> MasteryLedger<'a> {
         if self.evidence() != MasteryEvidence::Live {
             return None;
         }
-        match self.reward_mark(part_name)? {
-            MasteryMark::Unmastered {
-                subject: None,
-                parts,
-                ..
-            } => {
-                let this = parts.iter().find(|slot| slot.this)?;
-                Some(KioskMastery {
-                    held: this.held,
-                    uses: this.uses,
-                })
+        let (recipe, _) = self.resolve(part_name)?;
+        let mark = self.reward_mark(part_name)?;
+        let (status, item) = match &mark {
+            MasteryMark::Mastered => ("Mastered".to_owned(), recipe.parent_name.clone()),
+            MasteryMark::Built { rank, max_rank } => (
+                format!("Level {rank}/{max_rank}"),
+                recipe.parent_name.clone(),
+            ),
+            MasteryMark::InFoundry => ("In Foundry".to_owned(), recipe.parent_name.clone()),
+            MasteryMark::Unmastered { subject: Some(subject), .. } => {
+                ("Needed".to_owned(), subject.clone())
             }
-            _ => None,
-        }
+            MasteryMark::Unmastered { subject: None, .. } => {
+                ("Unmastered".to_owned(), recipe.parent_name.clone())
+            }
+            MasteryMark::Unknown => return None,
+        };
+        let (held, uses) = match mark {
+            MasteryMark::Unmastered { parts, .. } => {
+                let this = parts.iter().find(|slot| slot.this)?;
+                (this.held, this.uses)
+            }
+            _ => (0, 0),
+        };
+        Some(KioskMastery { held, uses, status, item })
     }
 
     /// A reward name to its parent recipe and the slot it fills there. Nothing when the name

@@ -777,6 +777,17 @@ function BandCell({ kind, value, unit, aside, label, note }: { kind: string; val
   </div>
 }
 
+function parentMasteryLabel(item: CollectionItem): string | null {
+  if (!item.mastery) return null
+  switch (item.mastery.state) {
+    case 'mastered': return 'Mastered'
+    case 'built': return `Needs leveling · ${item.mastery.rank}/${item.mastery.max_rank}`
+    case 'in_foundry': return 'In Foundry'
+    case 'unmastered': return item.mastery.subject ? `Needed for ${item.mastery.subject}` : 'Unmastered'
+    case 'unknown': return 'Mastery unknown'
+  }
+}
+
 function CollectionEntry({ item, ownershipVerified, showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {
   const missing = item.quantity === 0
   const [artFailed, setArtFailed] = useState(false)
@@ -807,6 +818,7 @@ function CollectionEntry({ item, ownershipVerified, showDucats, listedOrder, sel
           : null}
         {rankLabel(item) && <span className={`hallmark rank${atMaxRank(item) ? ' maxed' : ''}`}>{rankLabel(item)}</span>}
         {ownershipVerified && item.mastered && <span className="hallmark mastered">Mastered</span>}
+        {ownershipVerified && item.mastery_item && parentMasteryLabel(item) && <span className={`hallmark parent-mastery ${item.mastery?.state ?? "unknown"}`} title={`Finished item: ${item.mastery_item}`}>{parentMasteryLabel(item)} · {item.mastery_item}</span>}
         {listedOrder && <span className="hallmark">{listedLabel(listedOrder, item.quantity)}</span>}
         {item.platinum !== undefined && <span className={`price${item.live ? ' live' : ''}`}>
           <MetalMark metal="plat" alt="platinum "/>

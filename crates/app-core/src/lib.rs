@@ -295,16 +295,30 @@ impl AppCore {
 
     pub fn current_view(&self) -> Result<AppView, AppError> {
         let collection = self.store.load_collection()?;
+        let holdings = Holdings::from_entries(collection.entries());
+        let mastery_ledger = self.mastery_catalog.as_deref().map(|catalog| {
+            MasteryLedger::new(catalog, &holdings, self.mastery_facts.as_ref())
+        });
         let mut items = collection
             .entries()
             .map(|entry| {
+                let mastery_item = self.mastery_catalog.as_deref().and_then(|catalog| {
+                    let path = catalog.part_path_for_reward(&entry.item.name)?;
+                    let (recipe, _) = catalog.part_parent(path)?;
+                    Some(recipe.parent_name.clone())
+                });
+                let mastery = mastery_ledger
+                    .as_ref()
+                    .and_then(|ledger| ledger.reward_mark(&entry.item.name));
                 // Mastery is not ownership. An item at quantity 0 is not in the inventory
                 // and must not carry a price or contribute to the collection's worth.
                 // Ducats are the exception: they describe the item, not a sale the player
                 // could make, and the number on a missing part is what tells the player
                 // which relic reward to take.
                 if entry.quantity == 0 {
-                    return CollectionItemView::from(entry).with_ducats(self.ducats_for(entry));
+                    return CollectionItemView::from(entry)
+                        .with_ducats(self.ducats_for(entry))
+                        .with_mastery(mastery_item, mastery);
                 }
                 // Both lookups go through the market's own name for the item: the live cache is
                 // keyed by what was asked for, and that is never the catalog's name for a relic.
@@ -364,6 +378,7 @@ impl AppCore {
                         .and_then(|(name, prices)| prices.monthly_trades(name)),
                 )
                 .with_ducats(self.ducats_for(entry))
+                .with_mastery(mastery_item, mastery)
             })
             .collect::<Vec<_>>();
         items.sort_by(|left, right| left.id.cmp(&right.id));
@@ -811,6 +826,12 @@ pub struct CollectionItemView {
     category: Category,
     quantity: u32,
     mastered: bool,
+    /// The Prime item this part or blueprint contributes to, when known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mastery_item: Option<String>,
+    /// Mastery state from the same ledger used by reward and kiosk overlays.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mastery: Option<MasteryMark>,
     #[serde(skip_serializing_if = "Option::is_none")]
     image_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -931,6 +952,12 @@ impl CollectionItemView {
         self.ducats = ducats;
         self
     }
+
+    fn with_mastery(mut self, item: Option<String>, mastery: Option<MasteryMark>) -> Self {
+        self.mastery_item = item;
+        self.mastery = mastery;
+        self
+    }
 }
 
 impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
@@ -941,6 +968,8 @@ impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
             category: entry.item.category,
             quantity: entry.quantity,
             mastered: entry.mastered,
+            mastery_item: None,
+            mastery: None,
             image_url: entry.item.image_name.as_ref().map(|name| {
                 format!(
                     "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/img/{name}"
