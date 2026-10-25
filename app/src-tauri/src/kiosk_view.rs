@@ -246,6 +246,7 @@ pub fn mask_published_chips(frame: &mut image::DynamicImage, view: &KioskView, m
         // the strip's text reads back into the scroll locator and the quantity OCR.
         let chip_w_1080 = cell
             .mastery
+            .as_ref()
             .map_or(crate::kiosk_geometry::PRICE_CHIP_W_1080, |mastery| {
                 crate::kiosk_geometry::strip_mask_width_1080(mastery.held)
             });
@@ -466,13 +467,13 @@ mod tests {
             &cells,
             &[],
             |_| None,
-            |_| Some(KioskMastery { held: 1, uses: 2 }),
+            |_| Some(KioskMastery { held: 1, uses: 2, status: "Unmastered".into(), item: "Guandao Prime".into() }),
             MasteryStatus::Live,
         );
         let chip = &view.cells[0];
         assert_eq!(
-            (chip.platinum, chip.mastery),
-            (None, Some(KioskMastery { held: 1, uses: 2 }))
+            (chip.platinum, chip.mastery.clone()),
+            (None, Some(KioskMastery { held: 1, uses: 2, status: "Unmastered".into(), item: "Guandao Prime".into() }))
         );
         assert_eq!(view.mastery_status, MasteryStatus::Live);
     }

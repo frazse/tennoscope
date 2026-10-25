@@ -92,7 +92,7 @@ function MasteryStrip({ cell, mastery }: { cell: CellChip, mastery: KioskMastery
   const [tier, setTier] = useState<1 | 2 | 3>(1)
   const strip = useRef<HTMLSpanElement>(null)
   const fitted = useRef('')
-  const signature = `${cell.name} ${cell.platinum} ${mastery.held} ${mastery.uses}`
+  const signature = `${cell.name} ${cell.platinum} ${mastery.held} ${mastery.uses} ${mastery.status ?? ''} ${mastery.item ?? ''}`
 
   useLayoutEffect(() => {
     // A different reading is a different strip to fit, so a tier chosen for the last one says
@@ -117,9 +117,9 @@ function MasteryStrip({ cell, mastery }: { cell: CellChip, mastery: KioskMastery
     data-testid="kiosk-mastery-strip"
     data-tier={tier}
     style={{ ...gridChipStyle(cell.col, cell.row), maxWidth: stripMaxWidth(mastery.held) }}
-    title={cell.name}
+    title={`${cell.name} — ${mastery.status ?? "Unmastered"}${mastery.item ? `: ${mastery.item}` : ""}`}
   >
-    <span className="kiosk-fact">Unmastered</span>
+    <span className="kiosk-fact">{mastery.status ?? "Unmastered"}</span>
     {mastery.uses >= 2 && tier < 3 &&
       <span className="kiosk-fraction">{mastery.held}/{mastery.uses}</span>}
     {tier < 2 && <MetalMark metal="plat" className="kiosk-mark"/>}

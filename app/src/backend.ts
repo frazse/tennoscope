@@ -4,7 +4,7 @@ export type HealthState = 'ready' | 'idle' | 'degraded' | 'failed'
 export interface BackendHealth { state: HealthState; message: string; last_success: string | null }
 export interface AcquisitionStageHealth { stage: string; state: HealthState; message: string }
 export type ItemCategory = 'frame' | 'weapon' | 'companion' | 'prime_part' | 'relic' | 'resource' | 'blueprint' | 'vehicle' | 'mod' | 'arcane'
-export interface CollectionItem { id: string; name: string; category: ItemCategory; quantity: number; mastered: boolean; image_url?: string; platinum?: number; platinum_ceiling?: number; ducats?: number; rank?: number; max_rank?: number; live: boolean; priceable: boolean; monthly_trades?: number }
+export interface CollectionItem { id: string; name: string; category: ItemCategory; quantity: number; mastered: boolean; mastery_item?: string; mastery?: MasteryMark; image_url?: string; platinum?: number; platinum_ceiling?: number; ducats?: number; rank?: number; max_rank?: number; live: boolean; priceable: boolean; monthly_trades?: number }
 /** How far the live pricing pass the player asked for has got. */
 export interface PricingProgress { done: number; total: number }
 export interface RewardCard { name: string; platinum: number; ducats: number; owned: number; mastery?: MasteryMark; confidence: number }
@@ -64,7 +64,7 @@ export interface SetupStatus {
  * Copies of a part the recipe takes (`uses`) and copies held. The strip's fraction starts at two
  * uses: for a part needed once, the game's own owned badge beside the strip already shows the count.
  */
-export interface KioskMastery { held: number; uses: number }
+export interface KioskMastery { held: number; uses: number; status?: string; item?: string }
 /** One grid tile's corner chip, kept when its price, its mastery or both resolve. */
 export interface CellChip { col: number; row: number; name: string; platinum: number | null; mastery: KioskMastery | null }
 /** One basket row's platinum value; the game already draws the row's ducats. */

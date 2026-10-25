@@ -34,8 +34,11 @@ pub struct SetPart {
 
 /// A part of an item the player has not mastered: how many copies they hold, and how many
 /// one build uses. Kiosk tiles name parts, so this is all a strip has room to say.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct KioskMastery {
     pub held: u32,
     pub uses: u32,
+    /// The finished item's mastery state, or the consumer that still needs it.
+    pub status: String,
+    pub item: String,
 }

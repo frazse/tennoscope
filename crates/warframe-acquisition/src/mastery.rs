@@ -110,26 +110,74 @@ impl<'a> MasteryLedger<'a> {
         }
     }
 
+    /// The mastery state of a finished masterable item itself, independent of whether a
+    /// different recipe also consumes it. Used by Collection rows for the finished item.
+    pub fn item_mark(&self, item_path: &str) -> Option<MasteryMark> {
+        let metadata = self.catalog.resolve(item_path)?;
+        if !metadata.masterable() {
+            return None;
+        }
+        match self.evidence() {
+            MasteryEvidence::None => Some(MasteryMark::Unknown),
+            MasteryEvidence::Saved => Some(if self.closed(item_path) {
+                MasteryMark::Mastered
+            } else {
+                MasteryMark::Unknown
+            }),
+            MasteryEvidence::Live => {
+                if self.closed(item_path) {
+                    return Some(MasteryMark::Mastered);
+                }
+                if self.built(item_path) > 0 {
+                    let rank = metadata.category()
+                        .and_then(|category| mastery_rank(category, self.facts.map_or(0, |facts| facts.xp(item_path)), metadata.max_rank()))
+                        .unwrap_or(0);
+                    return Some(MasteryMark::Built { rank, max_rank: metadata.max_rank() });
+                }
+                if self.pending(item_path) > 0 {
+                    return Some(MasteryMark::InFoundry);
+                }
+                Some(MasteryMark::Unmastered {
+                    subject: None,
+                    parts: Vec::new(),
+                    missing: true,
+                    completes: false,
+                })
+            }
+        }
+    }
+
     /// Counts for a kiosk strip, only under live facts and only while the part's own item is not
     /// mastered, built or in the foundry, so never for a chain mark.
     pub fn kiosk_mastery(&self, part_name: &str) -> Option<KioskMastery> {
         if self.evidence() != MasteryEvidence::Live {
             return None;
         }
-        match self.reward_mark(part_name)? {
-            MasteryMark::Unmastered {
-                subject: None,
-                parts,
-                ..
-            } => {
-                let this = parts.iter().find(|slot| slot.this)?;
-                Some(KioskMastery {
-                    held: this.held,
-                    uses: this.uses,
-                })
+        let (recipe, _) = self.resolve(part_name)?;
+        let mark = self.reward_mark(part_name)?;
+        let (status, item) = match &mark {
+            MasteryMark::Mastered => ("Mastered".to_owned(), recipe.parent_name.clone()),
+            MasteryMark::Built { rank, max_rank } => (
+                format!("Level {rank}/{max_rank}"),
+                recipe.parent_name.clone(),
+            ),
+            MasteryMark::InFoundry => ("In Foundry".to_owned(), recipe.parent_name.clone()),
+            MasteryMark::Unmastered { subject: Some(subject), .. } => {
+                ("Needed".to_owned(), subject.clone())
             }
-            _ => None,
-        }
+            MasteryMark::Unmastered { subject: None, .. } => {
+                ("Unmastered".to_owned(), recipe.parent_name.clone())
+            }
+            MasteryMark::Unknown => return None,
+        };
+        let (held, uses) = match mark {
+            MasteryMark::Unmastered { parts, .. } => {
+                let this = parts.iter().find(|slot| slot.this)?;
+                (this.held, this.uses)
+            }
+            _ => (0, 0),
+        };
+        Some(KioskMastery { held, uses, status, item })
     }
 
     /// A reward name to its parent recipe and the slot it fills there. Nothing when the name

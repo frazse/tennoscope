@@ -180,8 +180,13 @@ fn a_mastered_ingredient_still_counts_toward_its_unmastered_consumer() {
     );
     assert_eq!(
         ledger.kiosk_mastery("Bronco Prime Barrel"),
-        None,
-        "Bronco Prime itself is mastered, so its parts get no kiosk strip"
+        Some(KioskMastery {
+            held: 0,
+            uses: 1,
+            status: "Needed".into(),
+            item: "Akbronko".into(),
+        }),
+        "a mastered part still needs a visible warning when an unmastered consumer needs it"
     );
 }
 
@@ -314,18 +319,23 @@ fn no_collection_means_unknown_and_non_mastery_items_get_no_mark() {
 }
 
 #[test]
-fn kiosk_mastery_reports_held_and_uses_for_live_unmastered_parts_only() {
+fn kiosk_mastery_reports_parent_state_and_part_counts_from_live_facts() {
     let catalog = catalog();
     let held = holdings(&[(GUANDAO_BLADE, 1)], &[]);
     let facts = live(&[], &[]);
     assert_eq!(
         MasteryLedger::new(&catalog, &held, Some(&facts)).kiosk_mastery("Guandao Prime Blade"),
-        Some(KioskMastery { held: 1, uses: 2 })
+        Some(KioskMastery { held: 1, uses: 2, status: "Unmastered".into(), item: "Guandao Prime".into() })
     );
     let mastered = holdings(&[(GUANDAO_BLADE, 1)], &[GUANDAO]);
     assert_eq!(
         MasteryLedger::new(&catalog, &mastered, Some(&facts)).kiosk_mastery("Guandao Prime Blade"),
-        None
+        Some(KioskMastery {
+            held: 0,
+            uses: 0,
+            status: "Mastered".into(),
+            item: "Guandao Prime".into(),
+        })
     );
     assert_eq!(
         MasteryLedger::new(&catalog, &held, None).kiosk_mastery("Guandao Prime Blade"),

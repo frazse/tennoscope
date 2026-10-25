@@ -380,6 +380,17 @@ describe('kiosk overlay route', () => {
     expect(within(shell).queryByTestId('kiosk-grid-chip')).toBeNull()
   })
 
+  it('shows the finished item mastery state and names the parent item', async () => {
+    const shell = await renderKiosk(kioskView({
+      cells: [tile({ name: 'Lex Prime Barrel', platinum: 7, mastery: { held: 0, uses: 0, status: 'Mastered', item: 'Lex Prime' } })],
+      mastery_status: 'live',
+    }))
+    const strip = within(shell).getByTestId('kiosk-mastery-strip')
+    expect(strip).toHaveTextContent('Mastered')
+    expect(strip).toHaveAttribute('title', 'Lex Prime Barrel — Mastered: Lex Prime')
+    expect(strip).toHaveTextContent('7p')
+  })
+
   it('shows held of uses only when a build uses the part twice, and a dash when unpriced', async () => {
     const shell = await renderKiosk(kioskView({
       cells: [tile({ name: 'Guandao Prime Blade', platinum: null, mastery: { held: 1, uses: 2 } })],
