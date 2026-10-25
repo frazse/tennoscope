@@ -467,13 +467,13 @@ mod tests {
             &cells,
             &[],
             |_| None,
-            |_| Some(KioskMastery { held: 1, uses: 2 }),
+            |_| Some(KioskMastery { held: 1, uses: 2, status: "Unmastered".into(), item: "Guandao Prime".into() }),
             MasteryStatus::Live,
         );
         let chip = &view.cells[0];
         assert_eq!(
-            (chip.platinum, chip.mastery),
-            (None, Some(KioskMastery { held: 1, uses: 2 }))
+            (chip.platinum, chip.mastery.clone()),
+            (None, Some(KioskMastery { held: 1, uses: 2, status: "Unmastered".into(), item: "Guandao Prime".into() }))
         );
         assert_eq!(view.mastery_status, MasteryStatus::Live);
     }
