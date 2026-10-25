@@ -302,14 +302,22 @@ impl AppCore {
         let mut items = collection
             .entries()
             .map(|entry| {
-                let mastery_item = self.mastery_catalog.as_deref().and_then(|catalog| {
+                let part_parent = self.mastery_catalog.as_deref().and_then(|catalog| {
                     let path = catalog.part_path_for_reward(&entry.item.name)?;
                     let (recipe, _) = catalog.part_parent(path)?;
                     Some(recipe.parent_name.clone())
                 });
-                let mastery = mastery_ledger
-                    .as_ref()
-                    .and_then(|ledger| ledger.reward_mark(&entry.item.name));
+                let is_masterable = self.mastery_catalog.as_deref()
+                    .and_then(|catalog| catalog.resolve(entry.item.id.catalog_path()))
+                    .is_some_and(|metadata| metadata.masterable());
+                let mastery_item = part_parent.or_else(|| is_masterable.then(|| entry.item.name.clone()));
+                let mastery = mastery_ledger.as_ref().and_then(|ledger| {
+                    if is_masterable {
+                        ledger.item_mark(entry.item.id.catalog_path())
+                    } else {
+                        ledger.reward_mark(&entry.item.name)
+                    }
+                });
                 // Mastery is not ownership. An item at quantity 0 is not in the inventory
                 // and must not carry a price or contribute to the collection's worth.
                 // Ducats are the exception: they describe the item, not a sale the player

@@ -110,6 +110,43 @@ impl<'a> MasteryLedger<'a> {
         }
     }
 
+    /// The mastery state of a finished masterable item itself, independent of whether a
+    /// different recipe also consumes it. Used by Collection rows for the finished item.
+    pub fn item_mark(&self, item_path: &str) -> Option<MasteryMark> {
+        let metadata = self.catalog.resolve(item_path)?;
+        if !metadata.masterable() {
+            return None;
+        }
+        match self.evidence() {
+            MasteryEvidence::None => Some(MasteryMark::Unknown),
+            MasteryEvidence::Saved => Some(if self.closed(item_path) {
+                MasteryMark::Mastered
+            } else {
+                MasteryMark::Unknown
+            }),
+            MasteryEvidence::Live => {
+                if self.closed(item_path) {
+                    return Some(MasteryMark::Mastered);
+                }
+                if self.built(item_path) > 0 {
+                    let rank = metadata.category()
+                        .and_then(|category| mastery_rank(category, self.facts.map_or(0, |facts| facts.xp(item_path)), metadata.max_rank()))
+                        .unwrap_or(0);
+                    return Some(MasteryMark::Built { rank, max_rank: metadata.max_rank() });
+                }
+                if self.pending(item_path) > 0 {
+                    return Some(MasteryMark::InFoundry);
+                }
+                Some(MasteryMark::Unmastered {
+                    subject: None,
+                    parts: Vec::new(),
+                    missing: true,
+                    completes: false,
+                })
+            }
+        }
+    }
+
     /// Counts for a kiosk strip, only under live facts and only while the part's own item is not
     /// mastered, built or in the foundry, so never for a chain mark.
     pub fn kiosk_mastery(&self, part_name: &str) -> Option<KioskMastery> {
