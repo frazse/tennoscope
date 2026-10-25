@@ -786,6 +786,7 @@ function parentMasteryLabel(item: CollectionItem): string | null {
     case 'unmastered': return item.mastery.subject ? `Needed for ${item.mastery.subject}` : 'Unmastered'
     case 'unknown': return 'Mastery unknown'
   }
+  return null
 }
 
 function CollectionEntry({ item, ownershipVerified, showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {

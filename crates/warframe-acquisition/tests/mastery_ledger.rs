@@ -180,8 +180,13 @@ fn a_mastered_ingredient_still_counts_toward_its_unmastered_consumer() {
     );
     assert_eq!(
         ledger.kiosk_mastery("Bronco Prime Barrel"),
-        None,
-        "Bronco Prime itself is mastered, so its parts get no kiosk strip"
+        Some(KioskMastery {
+            held: 0,
+            uses: 1,
+            status: "Needed".into(),
+            item: "Akbronko".into(),
+        }),
+        "a mastered part still needs a visible warning when an unmastered consumer needs it"
     );
 }
 
